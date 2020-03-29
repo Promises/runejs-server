@@ -8,6 +8,7 @@ export const npcIds = {
     shopKeeper: 520,
     lumbridgeBob: 519,
     lumbridgeCook: 278,
+    fredTheFarmer: 758,
     dommik: 545,
     louieLegs: 542,
     gemTrader: 540,
