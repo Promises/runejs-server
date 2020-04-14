@@ -6,8 +6,6 @@
   x: 3222
   y: 3220
   radius: 4
-
-
 - npcId: 945
   x: 3095
   y: 3108
@@ -778,6 +776,21 @@
   y: 3247
   level: 0
   radius: 1
+- npcId: 494
+  x: 2657
+  y: 3286
+  level: 0
+  radius: 5
+- npcId: 494
+  x: 2657
+  y: 3283
+  level: 0
+  radius: 5
+- npcId: 494
+  x: 2657
+  y: 3280
+  level: 0
+  radius: 5
 - npcId: 494
   x: 2836
   y: 10205
@@ -3458,6 +3471,21 @@
   y: 3490
   level: 1
   radius: 1
+- npcId: 494
+  x: 3090
+  y: 3242
+  level: 0
+  radius: 4
+- npcId: 494
+  x: 3090
+  y: 3243
+  level: 0
+  radius: 4
+- npcId: 494
+  x: 3090
+  y: 3245
+  level: 0
+  radius: 4
 - npcId: 970
   x: 3081
   y: 3247
@@ -3743,6 +3771,11 @@
   y: 3428
   level: 0
   radius: 1
+- npcId: 9
+  x: 3176
+  y: 3430
+  level: 0
+  radius: 1
 - npcId: 172
   x: 3223
   y: 3369
@@ -3776,6 +3809,11 @@
 - npcId: 172
   x: 3224
   y: 3371
+  level: 0
+  radius: 1
+- npcId: 172
+  x: 3226
+  y: 3373
   level: 0
   radius: 1
 - npcId: 9
@@ -3827,22 +3865,22 @@
   x: 3187
   y: 3438
   level: 0
-  radius: 0
+  radius: 5
 - npcId: 494
   x: 3187
   y: 3440
   level: 0
-  radius: 0
+  radius: 5
 - npcId: 494
   x: 3187
   y: 3444
   level: 0
-  radius: 0
+  radius: 5
 - npcId: 494
   x: 3187
   y: 3436
   level: 0
-  radius: 0
+  radius: 5
 - npcId: 494
   x: 3254
   y: 3418
@@ -3862,7 +3900,12 @@
   x: 3187
   y: 3442
   level: 0
-  radius: 0
+  radius: 5
+- npcId: 1
+  x: 3223
+  y: 3208
+  level: 0
+  radius: 1
 - npcId: 3
   x: 3221
   y: 3223
@@ -3885,6 +3928,11 @@
   radius: 1
 - npcId: 1770
   x: 3227
+  y: 3264
+  level: 0
+  radius: 1
+- npcId: 1770
+  x: 3229
   y: 3264
   level: 0
   radius: 1
@@ -4529,6 +4577,11 @@
   level: 0
   radius: 1
 - npcId: 1591
+  x: 2739
+  y: 9454
+  level: 0
+  radius: 1
+- npcId: 1591
   x: 2718
   y: 9461
   level: 0
@@ -4881,6 +4934,11 @@
 - npcId: 9
   x: 3114
   y: 3512
+  level: 0
+  radius: 1
+- npcId: 9
+  x: 3114
+  y: 3515
   level: 0
   radius: 1
 - npcId: 9
@@ -7713,6 +7771,11 @@
   y: 3172
   level: 0
   radius: 1
+- npcId: 466
+  x: 2667
+  y: 3162
+  level: 0
+  radius: 1
 - npcId: 162
   x: 2471
   y: 3427
@@ -10133,6 +10196,26 @@
   y: 10128
   level: 0
   radius: 1
+- npcId: 494
+  x: 3425
+  y: 2889
+  level: 0
+  radius: 4
+- npcId: 494
+  x: 3425
+  y: 2891
+  level: 0
+  radius: 4
+- npcId: 494
+  x: 3425
+  y: 2893
+  level: 0
+  radius: 4
+- npcId: 494
+  x: 3425
+  y: 2894
+  level: 0
+  radius: 4
 - npcId: 663
   x: 3293
   y: 3282
