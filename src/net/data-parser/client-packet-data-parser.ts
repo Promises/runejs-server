@@ -12,7 +12,7 @@ export class ClientPacketDataParser extends DataParser {
     private activePacketSize: number = null;
     private activeBuffer: ByteBuffer;
 
-    public parse(buffer?: ByteBuffer): void {
+    public async parse(buffer?: ByteBuffer): Promise<void> {
         if(!this.activeBuffer) {
             this.activeBuffer = buffer;
         } else if(buffer) {

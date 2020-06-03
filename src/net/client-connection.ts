@@ -35,7 +35,7 @@ export class ClientConnection {
         this.dataParser = null;
     }
 
-    public parseIncomingData(buffer?: ByteBuffer): void {
+    public async parseIncomingData(buffer?: ByteBuffer): Promise<void> {
         try {
             if(!this.connectionStage) {
                 const packetId = buffer.get('BYTE', 'UNSIGNED');
@@ -48,9 +48,9 @@ export class ClientConnection {
                     this.dataParser = new LoginHandshakeParser(this);
                 }
 
-                this.dataParser.parse(buffer, packetId);
+                await this.dataParser.parse(buffer, packetId);
             } else {
-                this.dataParser.parse(buffer);
+                await this.dataParser.parse(buffer);
             }
 
             if(this.connectionStage === ConnectionStage.VERSION_HANDSHAKE) {

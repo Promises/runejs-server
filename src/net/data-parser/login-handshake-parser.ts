@@ -6,7 +6,7 @@ import { ByteBuffer } from '@runejs/byte-buffer';
  */
 export class LoginHandshakeParser extends DataParser {
 
-    public parse(buffer: ByteBuffer, packetId: number): void {
+    public async parse(buffer: ByteBuffer, packetId: number): Promise<void> {
         if(!buffer) {
             throw new Error('No data supplied for login handshake');
         }

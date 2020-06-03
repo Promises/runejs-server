@@ -9,7 +9,7 @@ export class UpdateServerParser extends DataParser {
 
     private files: { file: number, index: number }[] = [];
 
-    public parse(buffer?: ByteBuffer): void {
+    public async parse(buffer?: ByteBuffer): Promise<void> {
         if(!buffer) {
             return;
         }

@@ -32,7 +32,7 @@ export class ClientLoginParser extends DataParser {
     private readonly rsaModulus = BigInteger(serverConfig.rsaMod);
     private readonly rsaExponent = BigInteger(serverConfig.rsaExp);
 
-    public parse(buffer?: ByteBuffer): void {
+    public async parse(buffer?: ByteBuffer): Promise<void> {
         if(!buffer) {
             throw new Error('No data supplied for login');
         }
@@ -103,21 +103,34 @@ export class ClientLoginParser extends DataParser {
         const outCipher = new Isaac(sessionKey);
 
         const player = new Player(this.clientConnection.socket, inCipher, outCipher, clientUuid, username, password, isLowDetail);
+        const authSuccess = await player.handleAuth();
+        if(authSuccess){
+            await player.loadSaveData();
+            world.registerPlayer(player);
 
-        world.registerPlayer(player);
+            const outputBuffer = new ByteBuffer(6);
+            outputBuffer.put(2, 'BYTE'); // login response code
+            outputBuffer.put(player.rights.valueOf(), 'BYTE');
+            outputBuffer.put(0, 'BYTE'); // ???
+            outputBuffer.put(player.worldIndex + 1, 'SHORT');
+            outputBuffer.put(0, 'BYTE'); // ???
+            this.clientConnection.socket.write(outputBuffer);
 
-        const outputBuffer = new ByteBuffer(6);
-        outputBuffer.put(2, 'BYTE'); // login response code
-        outputBuffer.put(player.rights.valueOf(), 'BYTE');
-        outputBuffer.put(0, 'BYTE'); // ???
-        outputBuffer.put(player.worldIndex + 1, 'SHORT');
-        outputBuffer.put(0, 'BYTE'); // ???
-        this.clientConnection.socket.write(outputBuffer);
+            player.init();
 
-        player.init();
+            this.clientConnection.clientKey1 = BigInt(clientKey1);
+            this.clientConnection.clientKey2 = BigInt(clientKey2);
+            this.clientConnection.player = player;
+        } else {
+            const outputBuffer = new ByteBuffer(6);
+            outputBuffer.put(3, 'BYTE'); // login response code
+            outputBuffer.put(player.rights.valueOf(), 'BYTE');
+            outputBuffer.put(0, 'BYTE'); // ???
+            outputBuffer.put(player.worldIndex + 1, 'SHORT');
+            outputBuffer.put(0, 'BYTE'); // ???
+            this.clientConnection.socket.write(outputBuffer);
+        }
 
-        this.clientConnection.clientKey1 = BigInt(clientKey1);
-        this.clientConnection.clientKey2 = BigInt(clientKey2);
-        this.clientConnection.player = player;
+
     }
 }

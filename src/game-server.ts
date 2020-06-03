@@ -25,6 +25,7 @@ import { setItemOnNpcPlugins } from '@server/world/actor/player/action/item-on-n
 import { setPlayerInitPlugins } from '@server/world/actor/player/player';
 import { setNpcInitPlugins } from '@server/world/actor/npc/npc';
 import { setQuestPlugins } from '@server/world/config/quests';
+import {setupFirebase} from "@server/world/actor/player/player-data";
 
 
 export let serverConfig: ServerConfig;
@@ -77,6 +78,8 @@ function generateCrcTable(): void {
 
 export function runGameServer(): void {
     serverConfig = parseServerConfig();
+
+    setupFirebase();
 
     if(!serverConfig) {
         logger.error('Unable to start server due to missing or invalid server configuration.');

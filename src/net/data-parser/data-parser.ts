@@ -6,6 +6,6 @@ export abstract class DataParser {
     public constructor(protected readonly clientConnection: ClientConnection) {
     }
 
-    public abstract parse(buffer?: ByteBuffer, packetId?: number): void | boolean;
+    public abstract async parse(buffer?: ByteBuffer, packetId?: number): Promise<void | boolean>;
 
 }
