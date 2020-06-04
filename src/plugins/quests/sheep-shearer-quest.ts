@@ -69,7 +69,7 @@ const quest: Quest = {
 };
 
 function startQuest(player: Player): Function {
-    player.setQuestStage('cooksAssistant', 'COLLECTING');
+    player.setQuestStage('sheepShearer', 'COLLECTING');
     return (options, tag_INGREDIENT_QUESTIONS) => [
         `Where do I find some flour?`, [
             player => [Emote.GENERIC, `Where do I find some flour?`],
@@ -230,7 +230,7 @@ const handInIngredientsAction: npcAction = (details) => {
             player => [Emote.GENERIC, `Well, maybe one day I'll be important enough to sit on the Duke's table.`],
             cook => [Emote.SKEPTICAL, `Maybe, but I won't be holding my breath.`],
             execute(() => {
-                player.setQuestStage('cooksAssistant', 'COMPLETE');
+                    player.setQuestStage('cooksAssistant', 'COMPLETE');
             })
         ],
         (subtree, tag_NO_INGREDIENTS) => [

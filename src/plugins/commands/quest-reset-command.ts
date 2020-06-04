@@ -7,6 +7,7 @@ const action: commandAction = (details) => {
     const { player } = details;
 
     player.quests.find(quest => quest.questId === 'cooksAssistant').stage = 'COLLECTING';
+    player.quests.find(quest => quest.questId === 'sheepShearer').stage = 'COLLECTING';
     player.outgoingPackets.updateClientConfig(widgetScripts.questPoints, 1000);
 };
 
