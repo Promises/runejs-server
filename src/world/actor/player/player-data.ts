@@ -4,6 +4,7 @@ import { join } from 'path';
 import { logger } from '@runejs/logger';
 import { Player } from './player';
 import { SkillValue } from '@server/world/actor/skills';
+import { hasValueNotNull } from '@server/util/data';
 
 
 export interface QuestProgress {
@@ -41,10 +42,12 @@ export class PlayerSettings {
     autoRetaliateEnabled: boolean = true;
     attackStyle: number = 0;
     bankInsertMode: number = 0;
+    bankWithdrawNoteMode: number = 0;
 }
 
 export interface PlayerSave {
     username: string;
+    passwordHash: string;
     rights: number;
     position: {
         x: number;
@@ -57,6 +60,7 @@ export interface PlayerSave {
     };
     appearance: Appearance;
     inventory: Item[];
+    bank: Item[];
     equipment: Item[];
     skills: SkillValue[];
     settings: PlayerSettings;
@@ -108,6 +112,7 @@ export function savePlayerData(player: Player): boolean {
 
     const playerSave: PlayerSave = {
         username: player.username,
+        passwordHash: player.passwordHash,
         position: {
             x: player.position.x,
             y: player.position.y,
@@ -120,6 +125,9 @@ export function savePlayerData(player: Player): boolean {
         rights: player.rights.valueOf(),
         appearance: player.appearance,
         inventory: player.inventory.items,
+        bank: player.bank.items.filter((item) => {
+            return hasValueNotNull(item);
+        }),
         equipment: player.equipment.items,
         skills: player.skills.values,
         settings: player.settings,

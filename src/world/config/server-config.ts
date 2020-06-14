@@ -1,4 +1,4 @@
-import { logger } from '@runejs/logger/dist/logger';
+import { logger } from '@runejs/logger';
 import { JSON_SCHEMA, safeLoad } from 'js-yaml';
 import { readFileSync } from 'fs';
 
@@ -10,6 +10,7 @@ export interface ServerConfig {
     showWelcome: boolean;
     expRate: number;
     giveAchievements: boolean;
+    checkCredentials: boolean;
 }
 
 export function parseServerConfig(useDefault?: boolean): ServerConfig {

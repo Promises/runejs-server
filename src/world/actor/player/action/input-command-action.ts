@@ -1,5 +1,6 @@
 import { Player } from '../player';
 import { ActionPlugin } from '@server/plugins/plugin';
+import { logger } from '@runejs/logger';
 
 /**
  * The definition for a command action function.
@@ -29,7 +30,7 @@ export interface CommandActionPlugin extends ActionPlugin {
     // The potential arguments for this command action.
     args?: {
         name: string;
-        type: 'number' | 'string';
+        type: 'number' | 'string' | 'either';
         defaultValue?: number | string;
     }[];
     // The action function to be performed.
@@ -73,7 +74,7 @@ export const inputCommandAction = (player: Player, command: string, isConsole: b
                     syntaxError += ` ${pluginArg.name}:${pluginArg.type}${pluginArg.defaultValue === undefined ? '' : '?'}`;
                 });
 
-                const requiredArgLength = plugin.args.filter(arg => arg.defaultValue !== undefined).length;
+                const requiredArgLength = plugin.args.filter(arg => arg.defaultValue === undefined).length;
                 if (requiredArgLength > inputArgs.length) {
                     player.sendLogMessage(syntaxError, isConsole);
                     return;
@@ -85,7 +86,7 @@ export const inputCommandAction = (player: Player, command: string, isConsole: b
                     let argValue: string | number = inputArgs[i] || null;
                     const pluginArg = plugin.args[i];
 
-                    if (argValue === null) {
+                    if (argValue === null || argValue === undefined) {
                         if (pluginArg.defaultValue === undefined) {
                             player.sendLogMessage(syntaxError, isConsole);
                             return;
@@ -95,11 +96,11 @@ export const inputCommandAction = (player: Player, command: string, isConsole: b
                     } else {
                         if (pluginArg.type === 'number') {
                             argValue = parseInt(argValue);
-                            if (isNaN(argValue)) {
+                            if(isNaN(argValue)) {
                                 player.sendLogMessage(syntaxError, isConsole);
                                 return;
                             }
-                        } else {
+                        } else if(pluginArg.type === 'string') {
                             if (!argValue || argValue.trim() === '') {
                                 player.sendLogMessage(syntaxError, isConsole);
                                 return;
@@ -116,6 +117,7 @@ export const inputCommandAction = (player: Player, command: string, isConsole: b
             }
         } catch (commandError) {
             player.sendLogMessage(`Command error: ${commandError}`, isConsole);
+            logger.error(commandError);
         }
     });
 };

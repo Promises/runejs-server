@@ -1,19 +1,23 @@
 import { WalkingQueue } from './walking-queue';
 import { ItemContainer } from '../items/item-container';
-import { Animation, Graphic, UpdateFlags } from './update-flags';
+import { Animation, DamageType, Graphic, UpdateFlags } from './update-flags';
 import { Npc } from './npc/npc';
-import { Entity } from '../entity';
 import { Skills } from '@server/world/actor/skills';
 import { Item } from '@server/world/items/item';
 import { Position } from '@server/world/position';
 import { DirectionData, directionFromIndex } from '@server/world/direction';
 import { CombatAction } from '@server/world/actor/player/action/combat-action';
+import { Pathfinding } from '@server/world/actor/pathfinding';
+import { Subject } from 'rxjs';
+import { ActionCancelType } from '@server/world/actor/player/action/action';
 
 /**
  * Handles an actor within the game world.
  */
-export abstract class Actor extends Entity {
+export abstract class Actor {
 
+    private _position: Position;
+    private _lastMapRegionUpdatePosition: Position;
     private _worldIndex: number;
     public readonly updateFlags: UpdateFlags;
     private readonly _walkingQueue: WalkingQueue;
@@ -21,30 +25,49 @@ export abstract class Actor extends Entity {
     private _runDirection: number;
     private _faceDirection: number;
     private readonly _inventory: ItemContainer;
+    private readonly _bank: ItemContainer;
     public readonly skills: Skills;
     private _busy: boolean;
     public readonly metadata: { [key: string]: any } = {};
     private _combatActions: CombatAction[];
+    public pathfinding: Pathfinding;
+    public lastMovementPosition: Position;
+    public readonly actionsCancelled: Subject<ActionCancelType>;
+    public readonly movementEvent: Subject<Position>;
 
     protected constructor() {
-        super();
         this.updateFlags = new UpdateFlags();
         this._walkingQueue = new WalkingQueue(this);
         this._walkDirection = -1;
         this._runDirection = -1;
         this._faceDirection = 6;
         this._inventory = new ItemContainer(28);
+        this._bank = new ItemContainer(376);
         this.skills = new Skills(this);
         this._busy = false;
         this._combatActions = [];
+        this.pathfinding = new Pathfinding(this);
+        this.actionsCancelled = new Subject<ActionCancelType>();
+        this.movementEvent = new Subject<Position>();
     }
 
-    public face(face: Position | Actor, clearWalkingQueue: boolean = true, autoClear: boolean = true): void {
+    public damage(amount: number, damageType: DamageType = DamageType.DAMAGE): void {
+
+    }
+
+    public face(face: Position | Actor | null, clearWalkingQueue: boolean = true, autoClear: boolean = true, clearedByWalking: boolean = true): void {
+        if(face === null) {
+            this.clearFaceActor();
+            this.updateFlags.facePosition = null;
+            return;
+        }
+
         if(face instanceof Position) {
             this.updateFlags.facePosition = face;
         } else if(face instanceof Actor) {
             this.updateFlags.faceActor = face;
             this.metadata['faceActor'] = face;
+            this.metadata['faceActorClearedByWalking'] = clearedByWalking;
 
             if(autoClear) {
                 setTimeout(() => {
@@ -86,12 +109,22 @@ export abstract class Actor extends Entity {
         this._inventory.remove(slot);
     }
 
+    public removeBankItem(slot: number): void {
+        this._bank.remove(slot);
+    }
+
     public giveItem(item: number | Item): boolean {
         return this._inventory.add(item) !== null;
+    }
+    public giveBankItem(item: number | Item): boolean {
+        return this._bank.add(item) !== null;
     }
 
     public hasItemInInventory(item: number | Item): boolean {
         return this._inventory.has(item);
+    }
+    public hasItemInBank(item: number | Item): boolean {
+        return this._bank.has(item);
     }
 
     public hasItemOnPerson(item: number | Item): boolean {
@@ -213,6 +246,26 @@ export abstract class Actor extends Entity {
 
     public abstract equals(actor: Actor): boolean;
 
+    public get position(): Position {
+        return this._position;
+    }
+
+    public set position(value: Position) {
+        if(!this._position) {
+            this._lastMapRegionUpdatePosition = value;
+        }
+
+        this._position = value;
+    }
+
+    public get lastMapRegionUpdatePosition(): Position {
+        return this._lastMapRegionUpdatePosition;
+    }
+
+    public set lastMapRegionUpdatePosition(value: Position) {
+        this._lastMapRegionUpdatePosition = value;
+    }
+
     public get worldIndex(): number {
         return this._worldIndex;
     }
@@ -251,6 +304,9 @@ export abstract class Actor extends Entity {
 
     public get inventory(): ItemContainer {
         return this._inventory;
+    }
+    public get bank(): ItemContainer {
+        return this._bank;
     }
 
     public get busy(): boolean {

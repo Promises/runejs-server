@@ -9,7 +9,7 @@ import { Cache } from '@runejs/cache-parser';
 import { parseServerConfig, ServerConfig } from '@server/world/config/server-config';
 import { ByteBuffer } from '@runejs/byte-buffer';
 
-import { loadTSPlugins, loadJSPlugins } from '@server/plugins/plugin-loader';
+import { loadPlugins } from '@server/plugins/plugin-loader';
 import { ActionPlugin, ActionType, sort } from '@server/plugins/plugin';
 
 import { setNpcPlugins } from '@server/world/actor/player/action/npc-action';
@@ -25,6 +25,7 @@ import { setItemOnNpcPlugins } from '@server/world/actor/player/action/item-on-n
 import { setPlayerInitPlugins } from '@server/world/actor/player/player';
 import { setNpcInitPlugins } from '@server/world/actor/npc/npc';
 import { setQuestPlugins } from '@server/world/config/quests';
+import { setPlayerPlugins } from '@server/world/actor/player/action/player-action';
 
 
 export let serverConfig: ServerConfig;
@@ -34,18 +35,9 @@ export let crcTable: ByteBuffer;
 
 export async function injectPlugins(): Promise<void> {
     const actionPluginMap: { [key: string]: ActionPlugin[] } = {};
-    const tsPlugins = await loadTSPlugins();
-    const jsPlugins = await loadJSPlugins();
+    const plugins = await loadPlugins();
 
-    tsPlugins.map(plugin => plugin.actions).reduce((a, b) => a.concat(b)).forEach(action => {
-        if(!actionPluginMap.hasOwnProperty(action.type)) {
-            actionPluginMap[action.type] = [];
-        }
-
-        actionPluginMap[action.type].push(action);
-    });
-
-    jsPlugins.map(plugin => plugin.actions).reduce((a, b) => a.concat(b)).forEach(action => {
+    plugins.map(plugin => plugin.actions).reduce((a, b) => a.concat(b)).forEach(action => {
         if(!actionPluginMap.hasOwnProperty(action.type)) {
             actionPluginMap[action.type] = [];
         }
@@ -68,6 +60,7 @@ export async function injectPlugins(): Promise<void> {
     setWidgetPlugins(actionPluginMap[ActionType.WIDGET_ACTION]);
     setPlayerInitPlugins(actionPluginMap[ActionType.PLAYER_INIT]);
     setNpcInitPlugins(actionPluginMap[ActionType.NPC_INIT]);
+    setPlayerPlugins(actionPluginMap[ActionType.PLAYER_ACTION]);
 }
 
 function generateCrcTable(): void {
@@ -84,7 +77,38 @@ function generateCrcTable(): void {
     crcTable = buffer;
 }
 
-export function runGameServer(): void {
+function openServer(): void {
+    net.createServer(socket => {
+        socket.setNoDelay(true);
+        socket.setKeepAlive(true);
+        socket.setTimeout(30000);
+
+        let clientConnection = new ClientConnection(socket);
+
+        socket.on('data', data => {
+            if(clientConnection) {
+                clientConnection.parseIncomingData(new ByteBuffer(data));
+            }
+        });
+
+        socket.on('close', () => {
+            if(clientConnection) {
+                clientConnection.connectionDestroyed();
+                clientConnection = null;
+            }
+        });
+
+        socket.on('error', error => {
+            logger.error('Socket destroyed due to connection error.');
+            logger.error(error.message);
+            socket.destroy();
+        });
+    }).listen(serverConfig.port, serverConfig.host);
+
+    logger.info(`Game server listening on port ${ serverConfig.port }.`);
+}
+
+export async function runGameServer(): Promise<void> {
     serverConfig = parseServerConfig();
 
     if(!serverConfig) {
@@ -97,45 +121,22 @@ export function runGameServer(): void {
     });
     generateCrcTable();
 
+    // @TODO keep these in the login server so they don't eat game server memory :)
+    // delete cache.dataChannel;
+    // delete cache.metaChannel;
+    // delete cache.indexChannels;
+    // delete cache.indices;
+
     world = new World();
-    injectPlugins().then(() => {
-        world.init();
+    await injectPlugins();
 
-        if(process.argv.indexOf('-fakePlayers') !== -1) {
-            world.generateFakePlayers();
-        }
+    world.init(); // .then(() => delete cache.mapData);
 
-        net.createServer(socket => {
-            logger.info('Socket opened');
+    if(process.argv.indexOf('-fakePlayers') !== -1) {
+        world.generateFakePlayers();
+    }
 
-            socket.setNoDelay(true);
-            socket.setKeepAlive(true);
-            socket.setTimeout(30000);
-
-            let clientConnection = new ClientConnection(socket);
-
-            socket.on('data', data => {
-                if(clientConnection) {
-                    clientConnection.parseIncomingData(new ByteBuffer(data));
-                }
-            });
-
-            socket.on('close', () => {
-                if(clientConnection) {
-                    clientConnection.connectionDestroyed();
-                    clientConnection = null;
-                }
-            });
-
-            socket.on('error', error => {
-                logger.error(error.message);
-                socket.destroy();
-                logger.error('Socket destroyed due to connection error.');
-            });
-        }).listen(serverConfig.port, serverConfig.host);
-
-        logger.info(`Game server listening on port ${serverConfig.port}.`);
-    });
+    openServer();
 
     const watcher = watch('dist/plugins/');
     watcher.on('ready', () => {

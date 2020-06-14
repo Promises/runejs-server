@@ -30,7 +30,20 @@ import { songs } from '@server/world/config/songs';
 import { colors, hexToRgb, rgbTo16Bit } from '@server/util/colors';
 import { quests } from '@server/world/config/quests';
 import { ItemDefinition } from '@runejs/cache-parser';
+import { ActionCancelType } from '@server/world/actor/player/action/action';
 
+export const playerOptions: { option: string, index: number, placement: 'TOP' | 'BOTTOM' }[] = [
+    {
+        option: 'Yeet',
+        index: 1,
+        placement: 'TOP'
+    },
+    {
+        option: 'Follow',
+        index: 0,
+        placement: 'BOTTOM'
+    }
+];
 
 const DEFAULT_TAB_WIDGET_IDS = [
     92, widgets.skillsTab, 274, widgets.inventory.widgetId, widgets.equipment.widgetId, 271, 192, -1, 131, 148,
@@ -66,7 +79,7 @@ export class Player extends Actor {
     private readonly _outCipher: Isaac;
     public readonly clientUuid: number;
     public readonly username: string;
-    private readonly password: string;
+    public readonly passwordHash: string;
     private _rights: Rights;
     private loggedIn: boolean;
     private _loginDate: Date;
@@ -89,9 +102,9 @@ export class Player extends Actor {
     public readonly numericInputEvent: Subject<number>;
     private _walkingTo: Position;
     private _nearbyChunks: Chunk[];
-    public readonly actionsCancelled: Subject<boolean>;
     private quadtreeKey: QuadtreeKey = null;
     public savedMetadata: { [key: string]: any } = {};
+    public sessionMetadata: { [key: string]: any } = {};
     public quests: QuestProgress[] = [];
     public achievements: string[] = [];
 
@@ -102,7 +115,7 @@ export class Player extends Actor {
         this._outCipher = outCipher;
         this.clientUuid = clientUuid;
         this.username = username;
-        this.password = password;
+        this.passwordHash = password;
         this._rights = Rights.ADMIN;
         this.isLowDetail = isLowDetail;
         this._outgoingPackets = new OutgoingPackets(this);
@@ -117,7 +130,6 @@ export class Player extends Actor {
         this.dialogueInteractionEvent = new Subject<number>();
         this.numericInputEvent = new Subject<number>();
         this._nearbyChunks = [];
-        this.actionsCancelled = new Subject<boolean>();
 
         this.loadSaveData();
     }
@@ -136,6 +148,9 @@ export class Player extends Actor {
             this.position = new Position(playerSave.position.x, playerSave.position.y, playerSave.position.level);
             if(playerSave.inventory && playerSave.inventory.length !== 0) {
                 this.inventory.setAll(playerSave.inventory);
+            }
+            if(playerSave.bank && playerSave.bank.length !== 0) {
+                this.bank.setAll(playerSave.bank);
             }
             if(playerSave.equipment && playerSave.equipment.length !== 0) {
                 this.equipment.setAll(playerSave.equipment);
@@ -239,6 +254,9 @@ export class Player extends Actor {
             };
         }
 
+        for(const playerOption of playerOptions) {
+            this.outgoingPackets.updatePlayerOption(playerOption.option, playerOption.index, playerOption.placement);
+        }
         this.updateBonuses();
         this.updateCarryWeight(true);
         this.modifyWidget(widgets.musicPlayerTab, { childId: 82, textColor: colors.green }); // Set "Harmony" to green/unlocked on the music tab
@@ -247,8 +265,12 @@ export class Player extends Actor {
 
         this.inventory.containerUpdated.subscribe(event => this.inventoryUpdated(event));
 
-        this.actionsCancelled.subscribe(doNotCloseWidgets => {
-            if(!doNotCloseWidgets) {
+        this.actionsCancelled.subscribe(type => {
+            const keepWidgetsOpenFor = [
+                'keep-widgets-open', 'pathing-movement'
+            ];
+
+            if(keepWidgetsOpenFor.indexOf(type) === -1) {
                 this.outgoingPackets.closeActiveWidgets();
                 this._activeWidget = null;
             }
@@ -766,7 +788,7 @@ export class Player extends Actor {
             if(this.queuedWidgets.length !== 0) {
                 this.activeWidget = this.queuedWidgets.shift();
             } else {
-                this.actionsCancelled.next(true);
+                this.actionsCancelled.next('keep-widgets-open');
             }
         }
     }
@@ -861,7 +883,7 @@ export class Player extends Actor {
             this.outgoingPackets.closeActiveWidgets();
         }
 
-        this.actionsCancelled.next(true);
+        this.actionsCancelled.next('keep-widgets-open');
         this._activeWidget = value;
     }
 

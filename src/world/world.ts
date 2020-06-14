@@ -17,6 +17,7 @@ import { Item } from '@server/world/items/item';
 import { Chunk } from '@server/world/map/chunk';
 import { LocationObject } from '@runejs/cache-parser';
 import { schedule } from '@server/task/task';
+import { parseScenerySpawns } from '@server/world/config/scenery-spawns';
 
 export interface QuadtreeKey {
     x: number;
@@ -40,6 +41,7 @@ export class World {
     public readonly itemData: Map<number, ItemDetails>;
     public readonly examine: ExamineCache = new ExamineCache();
     public readonly npcSpawns: NpcSpawn[];
+    public readonly scenerySpawns: LocationObject[];
     public readonly shops: Shop[];
     public readonly travelLocations: TravelLocations = new TravelLocations();
     public readonly playerTree: Quadtree<any>;
@@ -48,6 +50,7 @@ export class World {
     public constructor() {
         this.itemData = parseItemData(cache.itemDefinitions);
         this.npcSpawns = parseNpcSpawns();
+        this.scenerySpawns = parseScenerySpawns();
         this.shops = parseShops();
         this.playerTree = new Quadtree<any>({
             width: 10000,
@@ -61,12 +64,11 @@ export class World {
         this.setupWorldTick();
     }
 
-    public init(): void {
-        new Promise(resolve => {
+    public async init(): Promise<void> {
+        await new Promise(() => {
             this.chunkManager.generateCollisionMaps();
-            resolve();
-        }).then(() => {
             this.spawnNpcs();
+            this.spawnScenery();
         });
     }
 
@@ -214,11 +216,16 @@ export class World {
         }
 
         const position = new Position(newObject.x, newObject.y, newObject.level);
+        const chunk = this.chunkManager.getChunkForWorldPosition(position);
 
+        this.deleteAddedLocationObjectMarker(oldObject, position, chunk);
         this.addLocationObject(newObject, position);
 
         if(respawnTicks !== -1) {
-            schedule(respawnTicks).then(() => this.addLocationObject(oldObject, position));
+            schedule(respawnTicks).then(() => {
+                this.deleteAddedLocationObjectMarker(newObject as LocationObject, position, chunk);
+                this.addLocationObject(oldObject, position);
+            });
         }
     }
 
@@ -401,6 +408,12 @@ export class World {
         });
     }
 
+    public spawnScenery(): void {
+        this.scenerySpawns.forEach(locationObject => {
+            this.addLocationObject(locationObject, new Position(locationObject.x, locationObject.y, locationObject.level));
+        });
+    }
+
     public setupWorldTick(): void {
         timer(World.TICK_LENGTH).toPromise().then(() => this.worldTick());
     }
@@ -413,7 +426,7 @@ export class World {
 
         const spawnChunk = this.chunkManager.getChunkForWorldPosition(new Position(x, y, 0));
 
-        for(let i = 0; i < 990; i++) {
+        for(let i = 0; i < 1500; i++) {
             const player = new Player(null, null, null, i, `test${i}`, 'abs', true);
             this.registerPlayer(player);
             player.activeWidget = null;
@@ -438,6 +451,10 @@ export class World {
     }
 
     public async worldTick(): Promise<void> {
+        if(!this.ready) {
+            return;
+        }
+
         const hrStart = Date.now();
         const activePlayers: Player[] = this.playerList.filter(player => player !== null);
 
@@ -465,13 +482,18 @@ export class World {
         return Promise.resolve();
     }
 
-    public playerExists(player: Player): boolean {
-        const foundPlayer = this.playerList[player.worldIndex];
-        if(!foundPlayer) {
-            return false;
-        }
+    public playerOnline(player: Player | string): boolean {
+        if(typeof player === 'string') {
+            player = player.toLowerCase();
+            return this.playerList.findIndex(p => p !== null && p.username.toLowerCase() === player) !== -1;
+        } else {
+            const foundPlayer = this.playerList[player.worldIndex];
+            if(!foundPlayer) {
+                return false;
+            }
 
-        return foundPlayer.equals(player);
+            return foundPlayer.equals(player);
+        }
     }
 
     public registerPlayer(player: Player): boolean {
@@ -517,6 +539,10 @@ export class World {
     public deregisterNpc(npc: Npc): void {
         npc.exists = false;
         this.npcList[npc.worldIndex] = null;
+    }
+
+    public get ready(): boolean {
+        return this.chunkManager && this.chunkManager.complete;
     }
 
 }
