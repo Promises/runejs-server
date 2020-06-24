@@ -41,6 +41,11 @@ export function wrapText(text: string, maxWidth: number): string[] {
             i = tagCloseIndex;
             continue;
         }
+        if (char === '<' && (text.charAt(i + 1) === '/' || text.charAt(i + 1) === 's' && text.charAt(i + 2) === 't' && text.charAt(i + 3) === 'r')) {
+            const tagCloseIndex = text.indexOf('>', i);
+            i = tagCloseIndex;
+            continue;
+        }
 
         const charWidth = charWidths[text.charCodeAt(i)];
         width += charWidth;

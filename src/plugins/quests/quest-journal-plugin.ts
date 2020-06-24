@@ -3,9 +3,11 @@ import { ActionType, RunePlugin } from '@server/plugins/plugin';
 import { widgets } from '@server/world/config/widget';
 import { quests } from '@server/world/config/quests';
 import { wrapText } from '@server/util/strings';
+import { soundIds } from '@server/world/config/sound-ids';
 
 export const action: buttonAction = (details) => {
     const { player, buttonId } = details;
+    console.log(details)
 
     const questData = quests[Object.keys(quests).filter(questKey => quests[questKey].questTabId === buttonId)[0]];
     const playerQuest = player.quests.find(quest => quest.questId === questData.id);
